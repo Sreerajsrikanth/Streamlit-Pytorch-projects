@@ -5,3 +5,4 @@ mplsoccer
 matplotlib
 matplotlib.inline
 unicode
+streamlit
