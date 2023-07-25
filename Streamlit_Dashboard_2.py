@@ -1,3 +1,5 @@
+pip install statsbombpy
+pip install mplsoccer
 from statsbombpy import sb
 import pandas as pd
 import numpy as np
