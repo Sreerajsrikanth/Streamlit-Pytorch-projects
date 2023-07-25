@@ -1,1 +1,1 @@
-# Fault-Analysis-using-ML
+# ALL my streamlit_dashboarding and Pytorch projects will be here. Since I am still learning the best practices, there are going to be horrible practices in the code so do contact me for any clarifications over my twitter DMs (@sreerajsrikanth) or Instagram(@sreerajsrikanth).
