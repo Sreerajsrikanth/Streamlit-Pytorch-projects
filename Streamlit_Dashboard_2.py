@@ -1,15 +1,14 @@
-
-from statsbombpy import sb
+import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from statsbombpy import sb
 from mplsoccer import Sbopen, pitch
 import seaborn as sns
 from mplsoccer import VerticalPitch, add_image
 from matplotlib.colors import to_rgba
 from mplsoccer import Pitch, FontManager, Sbopen
 import unicodedata
-import streamlit as st
 parser = Sbopen()
 competitions = parser.competition()
 competition_id = competitions.competition_id
@@ -141,8 +140,11 @@ def get_shot(match_id,SHOT_ID):
     axs['title'].text(0.5, 0.5, f'{df_shot_event.player_name.iloc[0]}\n{team1} vs. {team2}',
                     va='center', ha='center', color='black',
                     fontproperties=robotto_regular.prop, fontsize=25)
+    
+    st.text('The chances created in the game with the both attackers and defenders in sight')
+    st.text('to understand in more detail about the shots')
+    st.pyplot(fig)
 
-    st.pyplot(fig) 
 def generate_cumulative_xg_plot(match_id):
     # Fetch events data for the specified match_id
     df = sb.events(match_id=match_id)
@@ -194,6 +196,7 @@ def generate_cumulative_xg_plot(match_id):
     max_team2_xg = max(team2_xg_cumulative)
     plt.text(43, max_team1_xg, f"Max {team_name[0]} xG: {max_team1_xg:.2f}", fontsize=14, color='red', ha='right')
     plt.text(43, max_team2_xg, f"Max {team_name[1]} xG: {max_team2_xg:.2f}", fontsize=14, color='black', ha='right')
+    st.text('This cumulative XG plot is for the viewers to understand how the game progressed in terms of chances')
     st.pyplot(fig)
 
 def shot_map(match_id,team):
@@ -214,6 +217,7 @@ def shot_map(match_id,team):
     cbar.ax.set_ylabel('Expected Goal Value', fontsize=14)
     cbar.ax.yaxis.label.set_color('white')
     cbar.ax.tick_params(labelcolor='white')
+    st.text('The shot map of '+team+ ' is for the viewers to understand which chances were more likely to go into goal according to the expected goals(XG) stats from statsbomb')
     st.pyplot(fig)
 
 def passing_network(match_id,team_name,formation):
@@ -359,6 +363,8 @@ def passing_network(match_id,team_name,formation):
                     va='center', ha='center', fontproperties=robotto_regular.prop, fontsize=30)
 
     # sphinx_gallery_thumbnail_path = 'gallery/pitch_plots/images/sphx_glr_plot_pass_network_002.png'
+    st.text('The passing network of '+team_name+' with the formation they chose to play with.') 
+    st.text('The default passing network is before their first substitution.')
     st.pyplot(fig)
 
 
@@ -367,7 +373,6 @@ def passing_network(match_id,team_name,formation):
 
 st.set_page_config(page_title='Match Analysis', page_icon=':soccer:', initial_sidebar_state='expanded')
 st.sidebar.markdown('## Select Football Game')
-cc1,cc2 = st.columns([1,1])
 select_competition = st.sidebar.selectbox('Select Competition', competition_id,index=0)
 if select_competition:
     seasons = get_season_ids(select_competition)
@@ -384,17 +389,15 @@ if select_match:
     teams = get_team_name(select_match)
     select_team = st.sidebar.selectbox('Select Team',teams,index=0)
     formations = get_formation(select_match,select_team)
-    select_formations = st.selectbox('Select Formation',formations,index=0)
-    with cc1:
-        generate_cumulative_xg_plot(select_match)
-        if select_team:
-            shot_map(select_match,select_team)
+    select_formations = st.sidebar.selectbox('Select Formation',formations,index=0)
+    generate_cumulative_xg_plot(select_match)
+    if select_team:
+        shot_map(select_match,select_team)
         
-    with cc2:   
-        if select_team and select_formations:    
-            passing_network(select_match,select_team,select_formations)
-        if select_shot:
-            get_shot(select_match,get_shot_id)
+    if select_team and select_formations:    
+        passing_network(select_match,select_team,select_formations)
+    if select_shot:
+        get_shot(select_match,get_shot_id)
     
     
     
