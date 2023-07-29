@@ -8,6 +8,8 @@ import seaborn as sns
 from mplsoccer import VerticalPitch, add_image
 from matplotlib.colors import to_rgba
 from mplsoccer import Pitch, FontManager, Sbopen
+from matplotlib import rcParams
+from matplotlib.colors import LinearSegmentedColormap
 import unicodedata
 parser = Sbopen()
 competitions = parser.competition()
@@ -32,6 +34,27 @@ def get_string_element(shot_events, column_name, condition_column, condition_val
     
     if not filtered_df.empty:
         return str(filtered_df[column_name].iloc[0])
+    else:
+        return None
+def get_int_element(shot_events, column_name, condition_column, condition_value):
+    """
+    Get a string element from a particular column in the DataFrame based on the given condition.
+
+    Parameters:
+        shot_events (pd.DataFrame): The input Pandas DataFrame.
+        column_name (str): The name of the column from which to extract the string element.
+        condition_column (str): The name of the column to apply the condition.
+        condition_value: The value used for the condition to filter the DataFrame.
+
+    Returns:
+        str or None: The string element from the specified column that meets the condition.
+                     Returns None if no matching element is found.
+    """
+
+    filtered_df =   shot_events[shot_events[condition_column] == condition_value]
+    
+    if not filtered_df.empty:
+        return int(filtered_df[column_name].iloc[0])
     else:
         return None
 def get_season_ids(competition_id):
@@ -219,7 +242,107 @@ def shot_map(match_id,team):
     cbar.ax.tick_params(labelcolor='white')
     st.text('The shot map of '+team+ ' is for the viewers to understand which chances were more likely to go into goal according to the expected goals(XG) stats from statsbomb')
     st.pyplot(fig)
+def pass_flow_plot(match_id,team_name):
 
+
+
+    rcParams['text.color'] = '#c7d5cc'  # set the default text color
+
+    # get event dataframe for game 7478
+    parser = Sbopen()
+    df, related, freeze, tactics = parser.event(match_id)
+
+    ##############################################################################
+    # Boolean mask for filtering the dataset by team
+
+    team1, team2 = df.team_name.unique()
+    mask_team1 = (df.type_name == 'Pass') & (df.team_name == team_name)
+
+    ##############################################################################
+    # Filter dataset to only include one teams passes and get boolean mask for the completed passes
+
+    df_pass = df.loc[mask_team1, ['x', 'y', 'end_x', 'end_y', 'outcome_name']]
+    mask_complete = df_pass.outcome_name.isnull()
+
+    ##############################################################################
+    # Setup the pitch and number of bins
+    pitch = Pitch(pitch_type='statsbomb',  line_zorder=2, line_color='#c7d5cc', pitch_color='#22312b')
+    bins = (6, 4)
+
+    ##############################################################################
+    # Plotting using a single color and length
+    fig, ax = pitch.draw(figsize=(16, 11), constrained_layout=True, tight_layout=False)
+    fig.set_facecolor('#22312b')
+    # plot the heatmap - darker colors = more passes originating from that square
+    bs_heatmap = pitch.bin_statistic(df_pass.x, df_pass.y, statistic='count', bins=bins)
+    hm = pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues')
+    # plot the pass flow map with a single color ('black') and length of the arrow (5)
+    fm = pitch.flow(df_pass.x, df_pass.y, df_pass.end_x, df_pass.end_y,
+                    color='black', arrow_type='same',
+                    arrow_length=5, bins=bins, ax=ax)
+    ax_title = ax.set_title(f'{team1} pass flow map vs {team2}', fontsize=30, pad=-20)
+
+    ##############################################################################
+    # Plotting using a cmap and scaled arrows
+
+    fig, ax = pitch.draw(figsize=(16, 11), constrained_layout=True, tight_layout=False)
+    fig.set_facecolor('#22312b')
+    # plot the heatmap - darker colors = more passes originating from that square
+    bs_heatmap = pitch.bin_statistic(df_pass.x, df_pass.y, statistic='count', bins=bins)
+    hm = pitch.heatmap(bs_heatmap, ax=ax, cmap='Reds')
+    # plot the pass flow map with a custom color map and the arrows scaled by the average pass length
+    # the longer the arrow the greater the average pass length in the cell
+    grey = LinearSegmentedColormap.from_list('custom cmap', ['#DADADA', 'black'])
+    fm = pitch.flow(df_pass.x, df_pass.y, df_pass.end_x, df_pass.end_y, cmap=grey,
+                    arrow_type='scale', arrow_length=15, bins=bins, ax=ax)
+    ax_title = ax.set_title(f'{team1} pass flow map vs {team2}', fontsize=30, pad=-20)
+
+    ##############################################################################
+    # Plotting with arrow lengths equal to average distance
+
+    fig, ax = pitch.draw(figsize=(16, 11), constrained_layout=True, tight_layout=False)
+    fig.set_facecolor('#22312b')
+    # plot the heatmap - darker colors = more passes originating from that square
+    bs_heatmap = pitch.bin_statistic(df_pass.x, df_pass.y, statistic='count', bins=bins)
+    hm = pitch.heatmap(bs_heatmap, ax=ax, cmap='Greens')
+    # plot the pass flow map with a single color and the
+    # arrow length equal to the average distance in the cell
+    fm = pitch.flow(df_pass.x, df_pass.y, df_pass.end_x, df_pass.end_y, color='black',
+                    arrow_type='average', bins=bins, ax=ax)
+    ax_title = ax.set_title(f'{team1} pass flow map vs {team2}', fontsize=30, pad=-20)
+
+    ##############################################################################
+    # Plotting with an endnote/title
+
+    # We will use mplsoccer's grid function to plot a pitch with a title axis.
+    pitch = Pitch(pitch_type='statsbomb', pad_bottom=1, pad_top=1,
+                pad_left=1, pad_right=1,
+                line_zorder=2, line_color='#c7d5cc', pitch_color='#22312b')
+    fig, axs = pitch.grid(figheight=8, endnote_height=0.03, endnote_space=0,
+                        title_height=0.1, title_space=0, grid_height=0.82,
+                        # Turn off the endnote/title axis. I usually do this after
+                        # I am happy with the chart layout and text placement
+                        axis=False)
+    fig.set_facecolor('#22312b')
+
+    # plot the heatmap - darker colors = more passes originating from that square
+    bs_heatmap = pitch.bin_statistic(df_pass.x, df_pass.y, statistic='count', bins=bins)
+    hm = pitch.heatmap(bs_heatmap, ax=axs['pitch'], cmap='Blues')
+    # plot the pass flow map with a single color ('black') and length of the arrow (5)
+    fm = pitch.flow(df_pass.x, df_pass.y, df_pass.end_x, df_pass.end_y,
+                    color='black', arrow_type='same',
+                    arrow_length=5, bins=bins, ax=axs['pitch'])
+
+    # title / endnote
+    font = FontManager()  # default is loading robotto font from google fonts
+    axs['title'].text(0.5, 0.5, f'{team_name} pass flow map vs',
+                    fontsize=25, fontproperties=font.prop, va='center', ha='center')
+    axs['endnote'].text(1, 0.5, '@sreerajsrikanth',
+                        fontsize=18, fontproperties=font.prop, va='center', ha='right')
+    st.text('Darker the square spaces means more passes originating from those spaces')
+    st.text('The pass flow map shows the distribution of the reliance of spaces used by the possession team')
+ 
+    st.pyplot(fig)
 def passing_network(match_id,team_name,formation):
 
     ##############################################################################
@@ -393,6 +516,7 @@ if select_match:
     generate_cumulative_xg_plot(select_match)
     if select_team:
         shot_map(select_match,select_team)
+        pass_flow_plot(select_match,select_team)
         
     if select_team and select_formations:    
         passing_network(select_match,select_team,select_formations)
@@ -402,4 +526,3 @@ if select_match:
     
     
     
-
