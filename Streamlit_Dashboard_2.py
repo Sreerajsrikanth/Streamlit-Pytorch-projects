@@ -9,12 +9,13 @@ from mplsoccer import VerticalPitch, add_image
 from matplotlib.colors import to_rgba
 from matplotlib import rcParams
 from matplotlib.colors import LinearSegmentedColormap
+import matplotlib as mpl
 import unicodedata
 parser = Sbopen()
 competitions = parser.competition()
 competition_id = competitions.competition_id
 competition_id = competition_id.unique()
-@st.cache_data
+@st.cache(suppress_st_warning=True)
 def get_string_element(shot_events, column_name, condition_column, condition_value):
     """
     Get a string element from a particular column in the DataFrame based on the given condition.
@@ -58,26 +59,26 @@ def get_int_element(shot_events, column_name, condition_column, condition_value)
         return int(filtered_df[column_name].iloc[0])
     else:
         return None
-@st.cache_data
+@st.cache(suppress_st_warning=True)
 def get_season_ids(competition_id):
     season_ids = competitions[competitions.competition_id==competition_id].season_id
     return season_ids
-@st.cache_data
+@st.cache(suppress_st_warning=True)
 def get_match_ids(competition_id,season_id):
     matches = parser.match(competition_id,season_id)
     match_ids = matches.match_id
     return match_ids
-@st.cache_data
+@st.cache(suppress_st_warning=True)
 def get_team_name(match_id):
     events, related, freeze, players = parser.event(match_id)
     team_names = events.team_name.unique()
     return team_names
-@st.cache_data
+@st.cache(suppress_st_warning=True)
 def get_formation(match_id,team_names):
     events, related, freeze, players = parser.event(match_id)
     formations = events[events['team_name']==team_names].tactics_formation.unique()
     return formations
-@st.cache_data
+@st.cache(suppress_st_warning=True)
 def get_shots_id(match_id):
     df_event = parser.event(match_id)[0]
     shot_events = df_event[(df_event.type_name=='Shot')].copy()
@@ -85,9 +86,9 @@ def get_shots_id(match_id):
     shot_events['player_name_minute']=shot_events['minute'].astype(str)+'-'+shot_events['player_name']
     shot_events=shot_events.reset_index()
     return shot_events
-@st.cache_data
+@st.cache(suppress_st_warning=True)
 def get_shot(match_id,SHOT_ID):
-# get event and lineup dataframes for game 
+# get event and lineup dataframes for game 7478
 # event data
 
     df_event, df_related, df_freeze, df_tactics = parser.event(match_id)
@@ -227,7 +228,7 @@ def generate_cumulative_xg_plot(match_id):
     plt.text(43, max_team2_xg, f"Max {team_name[1]} xG: {max_team2_xg:.2f}", fontsize=14, color='black', ha='right')
     st.text('This cumulative XG plot is for the viewers to understand how the game progressed in terms of chances')
     st.pyplot(fig)
-@st.cache_data
+@st.cache(suppress_st_warning=True)
 def shot_map(match_id,team):
     df = sb.events(match_id = match_id)
     df = df[df.shot_statsbomb_xg.isna()==False]
@@ -248,7 +249,7 @@ def shot_map(match_id,team):
     cbar.ax.tick_params(labelcolor='white')
     st.text('The shot map of '+team+ ' is for the viewers to understand which chances were more likely to go into goal according to the expected goals(XG) stats from statsbomb')
     st.pyplot(fig)
-@st.cache_data
+@st.cache(suppress_st_warning=True)
 def pass_flow_plot(match_id,team_name):
 
 
@@ -315,7 +316,7 @@ def pass_flow_plot(match_id,team_name):
     st.text('The pass flow map shows the distribution of the reliance of spaces used by the possession team')
  
     st.pyplot(fig)
-@st.cache_data
+@st.cache(suppress_st_warning=True)
 def passing_network(match_id,team_name,formation):
 
     ##############################################################################
@@ -462,11 +463,11 @@ def passing_network(match_id,team_name,formation):
     st.text('The passing network of '+team_name+' with the formation they chose to play with.') 
     st.text('The default passing network is before their first substitution.')
     st.pyplot(fig)
-@st.cache_data
+@st.cache(suppress_st_warning=True)
 def passes_shots_map(match_id,team_name):
     rcParams['text.color'] = '#c7d5cc'  # set the default text color
 
-    # get event dataframe for game 
+    # get event dataframe for game 7478
     parser = Sbopen()
     df, related, freeze, tactics = parser.event(match_id)
 
@@ -535,7 +536,36 @@ def passes_shots_map(match_id,team_name):
     st.text('This map shows the passes that lead to shots')
     st.text('This is to understand from which areas of the pitch chances were created')
     st.pyplot(fig) 
-
+@st.cache(suppress_st_warning=True)
+def get_starting_line_up(match_id,team_name):
+    event, related, freeze, tactics = parser.event(match_id)
+    # starting players from Barcelona
+    starting_xi_event = event.loc[((event['type_name'] == 'Starting XI') &
+                                (event['team_name'] == team_name)), ['id', 'tactics_formation']]
+    starting_xi = tactics.merge(starting_xi_event, on='id')
+    event = event.loc[((event['type_name'] == 'Ball Receipt') &
+                    (event['outcome_name'].isnull()) &
+                    (event['player_id'].isin(starting_xi['player_id']))
+                    ), ['player_id', 'x', 'y']]
+    # merge on the starting positions to the events
+    event = event.merge(starting_xi, on='player_id')
+    formation = event['tactics_formation'].iloc[0]
+    pitch = VerticalPitch(line_alpha=0.5, goal_type='box', goal_alpha=0.5)
+    fig, ax = pitch.draw(ncols=1, figsize=(10, 7))
+    ax_text = pitch.formation(formation, positions=starting_xi.position_id, kind='text',
+                            text=starting_xi.player_name.str.replace(' ', '\n'),
+                            va='center', ha='center', fontsize=10, ax=ax)
+    # scatter markers
+    mpl.rcParams['hatch.linewidth'] = 3
+    mpl.rcParams['hatch.color'] = 'blue'
+    ax_scatter = pitch.formation(formation, positions=starting_xi.position_id, kind='scatter',
+                                c='blue', hatch='||', linewidth=3, s=500,
+                                # you can also provide a single offset instead of a list
+                                # for xoffset and yoffset
+                                xoffset=-8,
+                                ax=ax)
+    st.text(f'The starting line-up of {team_name}')
+    st.pyplot(fig)
 
 
 
@@ -560,9 +590,10 @@ if select_match:
     select_formations = st.sidebar.selectbox('Select Formation',formations,index=0)
     generate_cumulative_xg_plot(select_match)
     if select_team:
-        shot_map(select_match,select_team)
+        get_starting_line_up(select_match,select_team)
         pass_flow_plot(select_match,select_team)
         passes_shots_map(select_match,select_team)
+        shot_map(select_match,select_team)
         
     if select_team and select_formations:    
         passing_network(select_match,select_team,select_formations)
