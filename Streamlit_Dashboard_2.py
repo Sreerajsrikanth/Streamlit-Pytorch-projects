@@ -15,6 +15,7 @@ parser = Sbopen()
 competitions = parser.competition()
 competition_id = competitions.competition_id
 competition_id = competition_id.unique()
+st.set_page_config(page_title='Match Analysis', page_icon=':soccer:', initial_sidebar_state='expanded')
 @st.cache_data
 def get_string_element(shot_events, column_name, condition_column, condition_value):
     """
@@ -567,9 +568,6 @@ def get_starting_line_up(match_id,team_name):
     st.text(f'The starting line-up of {team_name}')
     st.pyplot(fig)
 
-
-
-st.set_page_config(page_title='Match Analysis', page_icon=':soccer:', initial_sidebar_state='expanded')
 st.sidebar.markdown('## Select Football Game')
 select_competition = st.sidebar.selectbox('Select Competition', competition_id,index=0)
 if select_competition:
