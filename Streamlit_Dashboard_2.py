@@ -15,7 +15,7 @@ parser = Sbopen()
 competitions = parser.competition()
 competition_id = competitions.competition_id
 competition_id = competition_id.unique()
-st.cache_data)
+@st.cache_data
 def get_string_element(shot_events, column_name, condition_column, condition_value):
     """
     Get a string element from a particular column in the DataFrame based on the given condition.
@@ -59,7 +59,7 @@ def get_int_element(shot_events, column_name, condition_column, condition_value)
         return int(filtered_df[column_name].iloc[0])
     else:
         return None
-st.cache_data
+@st.cache_data
 def get_season_ids(competition_id):
     season_ids = competitions[competitions.competition_id==competition_id].season_id
     return season_ids
@@ -68,17 +68,17 @@ def get_match_ids(competition_id,season_id):
     matches = parser.match(competition_id,season_id)
     match_ids = matches.match_id
     return match_ids
-st.cache_data
+@st.cache_data
 def get_team_name(match_id):
     events, related, freeze, players = parser.event(match_id)
     team_names = events.team_name.unique()
     return team_names
-st.cache_data
+@st.cache_data
 def get_formation(match_id,team_names):
     events, related, freeze, players = parser.event(match_id)
     formations = events[events['team_name']==team_names].tactics_formation.unique()
     return formations
-st.cache_data
+@st.cache_data
 def get_shots_id(match_id):
     df_event = parser.event(match_id)[0]
     shot_events = df_event[(df_event.type_name=='Shot')].copy()
@@ -86,7 +86,7 @@ def get_shots_id(match_id):
     shot_events['player_name_minute']=shot_events['minute'].astype(str)+'-'+shot_events['player_name']
     shot_events=shot_events.reset_index()
     return shot_events
-st.cache_data
+@st.cache_data
 def get_shot(match_id,SHOT_ID):
 # get event and lineup dataframes for game 7478
 # event data
@@ -228,7 +228,7 @@ def generate_cumulative_xg_plot(match_id):
     plt.text(43, max_team2_xg, f"Max {team_name[1]} xG: {max_team2_xg:.2f}", fontsize=14, color='black', ha='right')
     st.text('This cumulative XG plot is for the viewers to understand how the game progressed in terms of chances')
     st.pyplot(fig)
-st.cache_data
+@st.cache_data
 def shot_map(match_id,team):
     df = sb.events(match_id = match_id)
     df = df[df.shot_statsbomb_xg.isna()==False]
@@ -249,7 +249,7 @@ def shot_map(match_id,team):
     cbar.ax.tick_params(labelcolor='white')
     st.text('The shot map of '+team+ ' is for the viewers to understand which chances were more likely to go into goal according to the expected goals(XG) stats from statsbomb')
     st.pyplot(fig)
-st.cache_data
+@st.cache_data
 def pass_flow_plot(match_id,team_name):
 
 
@@ -316,7 +316,7 @@ def pass_flow_plot(match_id,team_name):
     st.text('The pass flow map shows the distribution of the reliance of spaces used by the possession team')
  
     st.pyplot(fig)
-st.cache_data
+@st.cache_data
 def passing_network(match_id,team_name,formation):
 
     ##############################################################################
@@ -463,7 +463,7 @@ def passing_network(match_id,team_name,formation):
     st.text('The passing network of '+team_name+' with the formation they chose to play with.') 
     st.text('The default passing network is before their first substitution.')
     st.pyplot(fig)
-st.cache_data
+@st.cache_data
 def passes_shots_map(match_id,team_name):
     rcParams['text.color'] = '#c7d5cc'  # set the default text color
 
@@ -536,7 +536,7 @@ def passes_shots_map(match_id,team_name):
     st.text('This map shows the passes that lead to shots')
     st.text('This is to understand from which areas of the pitch chances were created')
     st.pyplot(fig) 
-st.cache_data
+@st.cache_data
 def get_starting_line_up(match_id,team_name):
     event, related, freeze, tactics = parser.event(match_id)
     # starting players from Barcelona
